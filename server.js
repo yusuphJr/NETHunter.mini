@@ -1,84 +1,80 @@
-// server.js
-const { Client, LocalAuth } = require("whatsapp-web.js");
-const qrcode = require("qrcode");
-const express = require("express");
-const socketIO = require("socket.io");
-const http = require("http");
-const fs = require("fs");
+import express from 'express';
+import { createServer } from 'http';
+import { Server as SocketIO } from 'socket.io';
+import { Client, LocalAuth } from 'whatsapp-web.js';
+import qrcode from 'qrcode';
 
 const app = express();
-const server = http.createServer(app);
-const io = socketIO(server);
+const server = createServer(app);
+const io = new SocketIO(server);
 
-const SESSION_FILE_PATH = "./session.json";
-let sessionData;
-
-if (fs.existsSync(SESSION_FILE_PATH)) {
-  sessionData = require(SESSION_FILE_PATH);
-}
+app.use(express.static('public'));
 
 const client = new Client({
-  puppeteer: { headless: true, args: ["--no-sandbox"] },
-  session: sessionData,
+  authStrategy: new LocalAuth(),
+  puppeteer: {
+    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    headless: true,
+  }
 });
 
-client.on("qr", async (qr) => {
+client.on('qr', async (qr) => {
   const qrImage = await qrcode.toDataURL(qr);
-  io.emit("qr", qrImage);
-  console.log("📷 QR Code sent to frontend.");
+  io.emit('qr', qrImage);
+  console.log('[📷] QR Code received and emitted to frontend');
 });
 
-client.on("authenticated", (session) => {
-  fs.writeFile(SESSION_FILE_PATH, JSON.stringify(session), (err) => {
-    if (err) console.error("❌ Failed to save session", err);
-    else console.log("✅ Session saved successfully.");
-  });
+client.on('ready', () => {
+  io.emit('ready', 'WhatsApp Bot is ready 🚀');
+  console.log('[🤖] Bot is ready and connected.');
 });
 
-client.on("ready", () => {
-  console.log("✅ WhatsApp client is ready.");
-  io.emit("ready");
+client.on('message', async msg => {
+  const content = msg.body.toLowerCase();
+  if (!content.startsWith('sudo ')) return;
+
+  const command = content.slice(5).trim();
+  console.log(`[📥] Command received: ${command}`);
+
+  let response = '';
+
+  switch (command) {
+    case 'bot.status':
+      response = '🤖 Bot is active.';
+      break;
+
+    case 'away.on':
+      response = '✉️ Auto-reply mode ON.';
+      break;
+
+    case 'typing.on':
+      client.sendMessage(msg.from, '_typing..._');
+      response = '💬 Emulated typing.';
+      break;
+
+    case 'logout':
+      await client.logout();
+      response = '🔒 Logged out.';
+      break;
+
+    default:
+      response = '⚠️ Unknown command.';
+  }
+
+  try {
+    await msg.edit(`✔️ ${response}`);
+  } catch {
+    await msg.reply(`✔️ ${response}`);
+  }
 });
 
-client.on("message", async (msg) => {
-  if (!msg.body.startsWith("sudo ")) return;
-
-  const command = msg.body.slice(5).trim();
-
-  // Handle different commands
-  if (command === "bot.status") {
-    await msg.edit("🤖 Bot is active.");
-  }
-
-  if (command === "away.on") {
-    await msg.edit("🛑 Away mode activated.");
-  }
-
-  if (command === "away.off") {
-    await msg.edit("✅ Away mode deactivated.");
-  }
-
-  if (command === "typing.on") {
-    client.sendPresenceAvailable();
-    client.sendTyping(msg.from);
-    await msg.edit("💬 Typing emulation started.");
-  }
-
-  if (command === "logout") {
-    if (fs.existsSync(SESSION_FILE_PATH)) fs.unlinkSync(SESSION_FILE_PATH);
-    await msg.reply("🔓 Session cleared. Restart bot to scan QR again.");
-    client.logout();
-  }
-});
-
-app.use(express.static("public"));
-
-io.on("connection", (socket) => {
-  console.log("🌐 Socket connected.");
-});
-
-server.listen(3000, () => {
-  console.log("🌍 Server running on http://localhost:3000");
+client.on('disconnected', () => {
+  console.log('[🔌] WhatsApp client disconnected.');
 });
 
 client.initialize();
+
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🌐 Server running on port ${PORT}`);
+});
