@@ -1,48 +1,43 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>NetHunter Mini - Link WhatsApp</title>
-    <style>
-      body {
-        background: #0f0f0f;
-        color: #00ffcc;
-        font-family: monospace;
-        text-align: center;
-        padding-top: 50px;
-      }
-      #qr {
-        margin-top: 30px;
-      }
-      img {
-        width: 300px;
-        border: 2px solid #00ffcc;
-        border-radius: 8px;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>NetHunter Mini</h1>
-    <p>📷 Scan QR Code to link your WhatsApp</p>
-    <div id="qr"></div>
-    <p id="status">Waiting for connection...</p>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-      const socket = io();
-
-      socket.on("qr", (qrData) => {
-        const img = document.createElement("img");
-        img.src = qrData;
-        document.getElementById("qr").innerHTML = "";
-        document.getElementById("qr").appendChild(img);
-        document.getElementById("status").innerText = "📱 Scan this with WhatsApp > Linked Devices";
-      });
-
-      socket.on("ready", () => {
-        document.getElementById("status").innerText = "✅ WhatsApp is linked and bot is active!";
-        document.getElementById("qr").innerHTML = "";
-      });
-    </script>
-  </body>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>nethunter.mini – WhatsApp QR</title>
+  <style>
+    body {
+      background-color: #0d1117;
+      color: #c9d1d9;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    img {
+      border: 4px solid #58a6ff;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Scan to Link with nethunter.mini</h1>
+  <img id="qr" src="" alt="QR Code">
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const socket = io();
+    socket.on('qr', qr => {
+      document.getElementById('qr').src = qr;
+    });
+    socket.on('ready', msg => {
+      document.body.innerHTML = '<h1>' + msg + '</h1>';
+    });
+  </script>
+</body>
 </html>
-
