@@ -1,18 +1,16 @@
 {
-  "name": "nethunter-mini-bot",
+  "name": "nethunter-mini",
   "version": "1.0.0",
-  "description": "WhatsApp automation bot nethunter.mini with sudo commands and scheduling and web UI",
+  "description": "WhatsApp Bot with web UI",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
-  "author": "Your Name",
-  "license": "MIT",
   "dependencies": {
     "express": "^4.18.2",
     "qrcode-terminal": "^0.12.0",
-    "whatsapp-web.js": "^1.19.5",
-    "node-schedule": "^2.1.1",
-    "socket.io": "^4.7.2"
+    "socket.io": "^4.7.2",
+    "whatsapp-web.js": "^1.23.0",
+    "node-schedule": "^2.1.1"
   }
 }
