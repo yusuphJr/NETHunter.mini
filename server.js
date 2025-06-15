@@ -16,7 +16,7 @@ const client = new Client({
 });
 
 // Bot owner WhatsApp ID - replace with your full WhatsApp number (country code + number)
-const BOT_OWNER = '2556XXXXXXX@c.us';
+const BOT_OWNER = '255745830630';
 
 // Bot state variables
 let isAvailable = true;
