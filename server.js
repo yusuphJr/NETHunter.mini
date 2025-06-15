@@ -1,8 +1,10 @@
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIO } from 'socket.io';
-import { Client, LocalAuth } from 'whatsapp-web.js';
+import pkg from 'whatsapp-web.js';
 import qrcode from 'qrcode';
+
+const { Client, LocalAuth } = pkg;
 
 const app = express();
 const server = createServer(app);
