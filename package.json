@@ -1,16 +1,15 @@
 {
   "name": "nethunter-mini",
   "version": "1.0.0",
-  "description": "WhatsApp Bot with web UI",
   "main": "server.js",
+  "type": "module",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "qrcode-terminal": "^0.12.0",
+    "qrcode": "^1.5.3",
     "socket.io": "^4.7.2",
-    "whatsapp-web.js": "^1.23.0",
-    "node-schedule": "^2.1.1"
+    "whatsapp-web.js": "^1.21.1"
   }
 }
