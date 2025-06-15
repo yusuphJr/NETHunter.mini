@@ -1,1 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>NetHunter Mini - Link WhatsApp</title>
+    <style>
+      body {
+        background: #0f0f0f;
+        color: #00ffcc;
+        font-family: monospace;
+        text-align: center;
+        padding-top: 50px;
+      }
+      #qr {
+        margin-top: 30px;
+      }
+      img {
+        width: 300px;
+        border: 2px solid #00ffcc;
+        border-radius: 8px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>NetHunter Mini</h1>
+    <p>📷 Scan QR Code to link your WhatsApp</p>
+    <div id="qr"></div>
+    <p id="status">Waiting for connection...</p>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+
+      socket.on("qr", (qrData) => {
+        const img = document.createElement("img");
+        img.src = qrData;
+        document.getElementById("qr").innerHTML = "";
+        document.getElementById("qr").appendChild(img);
+        document.getElementById("status").innerText = "📱 Scan this with WhatsApp > Linked Devices";
+      });
+
+      socket.on("ready", () => {
+        document.getElementById("status").innerText = "✅ WhatsApp is linked and bot is active!";
+        document.getElementById("qr").innerHTML = "";
+      });
+    </script>
+  </body>
+</html>
 
