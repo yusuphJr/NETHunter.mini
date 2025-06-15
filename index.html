@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>nethunter.mini WhatsApp Bot Control</title>
+  <style>
+    body {
+      background: #121212;
+      color: #eee;
+      font-family: 'Courier New', Courier, monospace;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      color: #00ffcc;
+      text-align: center;
+    }
+    #qr {
+      text-align: center;
+      margin: 20px 0;
+    }
+    #status {
+      background: #222;
+      padding: 10px;
+      border-radius: 6px;
+      min-height: 50px;
+      font-size: 0.9rem;
+      white-space: pre-wrap;
+    }
+    #commandInput {
+      width: 100%;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 1rem;
+      background: #222;
+      color: #0ff;
+      border: none;
+      border-radius: 4px;
+      outline: none;
+    }
+    #sendBtn {
+      margin-top: 10px;
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      background: #00ffcc;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      color: #000;
+    }
+    #log {
+      margin-top: 20px;
+      background: #222;
+      padding: 10px;
+      height: 300px;
+      overflow-y: auto;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+    #log div {
+      margin-bottom: 8px;
+    }
+    .cmd {
+      color: #00ffcc;
+    }
+    .resp {
+      color: #fff;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>nethunter.mini WhatsApp Bot Control</h1>
+
+  <div id="qr"></div>
+  <div id="status">Connecting to bot...</div>
+
+  <input
+    id="commandInput"
+    type="text"
+    placeholder="Enter command here (start with sudo)"
+    autocomplete="off"
+  />
+  <button id="sendBtn">Send Command</button>
+
+  <div id="log"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io(); // Default (works only when served from same host)
+    const qrDiv = document.getElementById('qr');
+    const statusDiv = document.getElementById('status');
+    const input = document.getElementById('commandInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const logDiv = document.getElementById('log');
+
+    function addLog(command, response) {
+      const cmdDiv = document.createElement('div');
+      cmdDiv.classList.add('cmd');
+      cmdDiv.textContent = '> ' + command;
+
+      const respDiv = document.createElement('div');
+      respDiv.classList.add('resp');
+      respDiv.textContent = response;
+
+      logDiv.appendChild(cmdDiv);
+      logDiv.appendChild(respDiv);
+
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    socket.on('connect', () => {
+      statusDiv.textContent = 'Connected to server, waiting for WhatsApp...';
+    });
+
+    socket.on('qr', (qr) => {
+      statusDiv.textContent = 'Scan QR Code with WhatsApp to login.';
+      qrDiv.innerHTML = '';
+      // Use qrcode lib to generate canvas or img
+      // But let's generate svg using qrcode lib from CDN
+      qrcode.toDataURL(qr, { margin: 1, scale: 6 }, (err, url) => {
+        if (err) {
+          qrDiv.textContent = 'Error generating QR code';
+          return;
+        }
+        const img = document.createElement('img');
+        img.src = url;
+        img.alt = 'QR Code';
+        qrDiv.appendChild(img);
+      });
+    });
+
+    socket.on('ready', (ready) => {
+      if (ready) {
+        statusDiv.textContent = '✅ WhatsApp client is ready.';
+        qrDiv.innerHTML = '';
+      } else {
+        statusDiv.textContent = '❌ WhatsApp client disconnected.';
+      }
+    });
+
+    socket.on('message', (msg) => {
+      addLog('System', msg);
+    });
+
+    socket.on('commandResponse', (response) => {
+      addLog('Response', response);
+    });
+
+    sendBtn.addEventListener('click', () => {
+      const cmd = input.value.trim();
+      if (!cmd) return alert('Please enter a command.');
+      if (!cmd.toLowerCase().startsWith('sudo ')) {
+        alert('Commands must start with sudo');
+        return;
+      }
+      addLog('Command', cmd);
+      socket.emit('command', cmd);
+      input.value = '';
+    });
+
+    // Optional: send command on Enter key
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') sendBtn.click();
+    });
+
+    // Load qrcode lib dynamically for qr generation
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js';
+    document.head.appendChild(script);
+  </script>
+</body>
+</html>
