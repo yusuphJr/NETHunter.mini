@@ -1,8 +1,9 @@
+// server.js
 import express from 'express';
 import { createServer } from 'http';
 import { Server as SocketIO } from 'socket.io';
-import pkg from 'whatsapp-web.js';
 import qrcode from 'qrcode';
+import pkg from 'whatsapp-web.js';
 
 const { Client, LocalAuth } = pkg;
 
@@ -23,60 +24,56 @@ const client = new Client({
 client.on('qr', async (qr) => {
   const qrImage = await qrcode.toDataURL(qr);
   io.emit('qr', qrImage);
-  console.log('[📷] QR Code received and emitted to frontend');
+  console.log('[📷] QR Code emitted to frontend');
 });
 
 client.on('ready', () => {
-  io.emit('ready', 'WhatsApp Bot is ready 🚀');
-  console.log('[🤖] Bot is ready and connected.');
+  console.log('[🤖] Bot is ready.');
+  io.emit('ready', '✅ Nethunter Mini is ready!');
 });
 
 client.on('message', async msg => {
-  const content = msg.body.toLowerCase();
+  const content = msg.body.trim().toLowerCase();
   if (!content.startsWith('sudo ')) return;
 
   const command = content.slice(5).trim();
-  console.log(`[📥] Command received: ${command}`);
+  console.log(`[📥] Command: ${command}`);
 
   let response = '';
 
   switch (command) {
     case 'bot.status':
-      response = '🤖 Bot is active.';
+      response = '🤖 Nethunter Mini is active.';
       break;
-
-    case 'away.on':
-      response = '✉️ Auto-reply mode ON.';
-      break;
-
     case 'typing.on':
-      client.sendMessage(msg.from, '_typing..._');
-      response = '💬 Emulated typing.';
+      await client.sendMessage(msg.from, '_Bot is typing..._');
+      response = '💬 Typing emulation triggered.';
       break;
-
+    case 'away.on':
+      response = '🛑 Auto-away mode ON. Unavailable response active.';
+      break;
     case 'logout':
       await client.logout();
-      response = '🔒 Logged out.';
+      response = '🔒 Logged out successfully.';
       break;
-
     default:
-      response = '⚠️ Unknown command.';
+      response = '⚠️ Unknown command. Try: sudo bot.status';
   }
 
   try {
-    await msg.edit(`✔️ ${response}`);
+    await msg.edit(`🛠 ${response}`);
   } catch {
-    await msg.reply(`✔️ ${response}`);
+    await msg.reply(`🛠 ${response}`);
   }
 });
 
 client.on('disconnected', () => {
-  console.log('[🔌] WhatsApp client disconnected.');
+  console.log('[⚡] WhatsApp client disconnected.');
 });
 
 client.initialize();
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`🌐 Server running on port ${PORT}`);
+  console.log(`🌐 Server live at http://localhost:${PORT}`);
 });
