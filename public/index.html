@@ -1,14 +1,15 @@
+<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>nethunter.mini – WhatsApp QR</title>
+  <meta charset="UTF-8">
+  <title>Nethunter Mini QR</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     body {
-      background-color: #0d1117;
-      color: #c9d1d9;
       font-family: monospace;
+      background-color: #000;
+      color: #00ff00;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -17,26 +18,35 @@
       margin: 0;
     }
     h1 {
-      font-size: 24px;
+      margin-bottom: 10px;
+    }
+    #status {
       margin-bottom: 20px;
     }
     img {
-      border: 4px solid #58a6ff;
-      border-radius: 10px;
+      max-width: 300px;
+      border: 2px solid #0f0;
+      border-radius: 8px;
     }
   </style>
 </head>
 <body>
-  <h1>Scan to Link with nethunter.mini</h1>
-  <img id="qr" src="" alt="QR Code">
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <h1>Nethunter Mini</h1>
+  <div id="status">📡 Waiting for QR...</div>
+  <div id="qr"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
   <script>
     const socket = io();
-    socket.on('qr', qr => {
-      document.getElementById('qr').src = qr;
+
+    socket.on('qr', qrData => {
+      document.getElementById('status').textContent = '📷 Scan this QR in WhatsApp';
+      document.getElementById('qr').innerHTML = `<img src="${qrData}" alt="QR Code">`;
     });
-    socket.on('ready', msg => {
-      document.body.innerHTML = '<h1>' + msg + '</h1>';
+
+    socket.on('ready', message => {
+      document.getElementById('status').textContent = message;
+      document.getElementById('qr').innerHTML = '';
     });
   </script>
 </body>
