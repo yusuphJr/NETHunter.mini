@@ -1,66 +1,55 @@
 import express from 'express';
-import { createServer } from 'http';
-import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import { Client, LocalAuth } from 'whatsapp-web.js';
-import qrcode from 'qrcode-terminal';
-import { generate } from 'qrcode';
-import { handleCommand } from './commands.js';
+import qrcode from 'qrcode';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const app = express();
-const server = createServer(app);
-const PORT = process.env.PORT || 3000;
-
-let qrCodeImage = '';
-let isReady = false;
+const port = process.env.PORT || 3000;
 
 const client = new Client({
   authStrategy: new LocalAuth(),
-  puppeteer: {
-    headless: true,
-    args: ['--no-sandbox']
-  }
+  puppeteer: { headless: true }
 });
 
+app.use(express.static(join(__dirname, 'public')));
+app.use(express.json());
+
+let qrCodeData = '';
+
 client.on('qr', async (qr) => {
-  console.log('[QR] Scan this code:');
-  qrcode.generate(qr, { small: true });
-  qrCodeImage = await generate(qr);
+  qrCodeData = await qrcode.toDataURL(qr);
+  console.log('[ QR RECEIVED ]');
 });
 
 client.on('ready', () => {
-  console.log('[BOT] WhatsApp client is ready');
-  isReady = true;
+  console.log('[ BOT IS READY ✅ ]');
 });
 
-client.on('message_create', async (msg) => {
-  const text = msg.body.trim();
-  const isFromMe = msg.fromMe;
-
-  if (text.startsWith('sudo') && isFromMe) {
-    const output = await handleCommand(text, msg, client);
-    if (output) {
-      try {
-        await msg.edit(output);
-      } catch {
-        await msg.reply(output);
-      }
-    }
-  }
+client.on('authenticated', () => {
+  console.log('[ AUTHENTICATED 🔐 ]');
 });
 
 client.initialize();
 
-// Web server to show QR
-app.get('/', (req, res) => {
-  const html = readFileSync('./index.html', 'utf8');
-  const status = isReady
-    ? `<h2 style="color: green;">✅ Nethunter is running</h2>`
-    : qrCodeImage
-      ? `<h2>📲 Scan QR to Link WhatsApp</h2><img src="${qrCodeImage}"/>`
-      : `<p>Loading QR...</p>`;
-  res.send(html.replace('{{STATUS}}', status));
+app.get('/qr', (req, res) => {
+  if (qrCodeData) {
+    res.json({ qr: qrCodeData });
+  } else {
+    res.status(503).json({ message: 'QR code not available yet' });
+  }
 });
 
-server.listen(PORT, () => {
-  console.log(`[SERVER] Running on http://localhost:${PORT}`);
+app.post('/link-phone', (req, res) => {
+  const { phone } = req.body;
+  console.log(`[ MOCK PHONE LOGIN ] Requested phone link for: ${phone}`);
+  // Simulation: return success message
+  res.json({ success: true, message: `Link code for ${phone} sent! (mocked)` });
+});
+
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
 });
