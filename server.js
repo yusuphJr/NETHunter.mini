@@ -1,79 +1,66 @@
-// server.js
 import express from 'express';
 import { createServer } from 'http';
-import { Server as SocketIO } from 'socket.io';
-import qrcode from 'qrcode';
-import pkg from 'whatsapp-web.js';
-
-const { Client, LocalAuth } = pkg;
+import { readFileSync } from 'fs';
+import { Client, LocalAuth } from 'whatsapp-web.js';
+import qrcode from 'qrcode-terminal';
+import { generate } from 'qrcode';
+import { handleCommand } from './commands.js';
 
 const app = express();
 const server = createServer(app);
-const io = new SocketIO(server);
+const PORT = process.env.PORT || 3000;
 
-app.use(express.static('public'));
+let qrCodeImage = '';
+let isReady = false;
 
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
     headless: true,
+    args: ['--no-sandbox']
   }
 });
 
 client.on('qr', async (qr) => {
-  const qrImage = await qrcode.toDataURL(qr);
-  io.emit('qr', qrImage);
-  console.log('[📷] QR Code emitted to frontend');
+  console.log('[QR] Scan this code:');
+  qrcode.generate(qr, { small: true });
+  qrCodeImage = await generate(qr);
 });
 
 client.on('ready', () => {
-  console.log('[🤖] Bot is ready.');
-  io.emit('ready', '✅ Nethunter Mini is ready!');
+  console.log('[BOT] WhatsApp client is ready');
+  isReady = true;
 });
 
-client.on('message', async msg => {
-  const content = msg.body.trim().toLowerCase();
-  if (!content.startsWith('sudo ')) return;
+client.on('message_create', async (msg) => {
+  const text = msg.body.trim();
+  const isFromMe = msg.fromMe;
 
-  const command = content.slice(5).trim();
-  console.log(`[📥] Command: ${command}`);
-
-  let response = '';
-
-  switch (command) {
-    case 'bot.status':
-      response = '🤖 Nethunter Mini is active.';
-      break;
-    case 'typing.on':
-      await client.sendMessage(msg.from, '_Bot is typing..._');
-      response = '💬 Typing emulation triggered.';
-      break;
-    case 'away.on':
-      response = '🛑 Auto-away mode ON. Unavailable response active.';
-      break;
-    case 'logout':
-      await client.logout();
-      response = '🔒 Logged out successfully.';
-      break;
-    default:
-      response = '⚠️ Unknown command. Try: sudo bot.status';
+  if (text.startsWith('sudo') && isFromMe) {
+    const output = await handleCommand(text, msg, client);
+    if (output) {
+      try {
+        await msg.edit(output);
+      } catch {
+        await msg.reply(output);
+      }
+    }
   }
-
-  try {
-    await msg.edit(`🛠 ${response}`);
-  } catch {
-    await msg.reply(`🛠 ${response}`);
-  }
-});
-
-client.on('disconnected', () => {
-  console.log('[⚡] WhatsApp client disconnected.');
 });
 
 client.initialize();
 
-const PORT = process.env.PORT || 3000;
+// Web server to show QR
+app.get('/', (req, res) => {
+  const html = readFileSync('./index.html', 'utf8');
+  const status = isReady
+    ? `<h2 style="color: green;">✅ Nethunter is running</h2>`
+    : qrCodeImage
+      ? `<h2>📲 Scan QR to Link WhatsApp</h2><img src="${qrCodeImage}"/>`
+      : `<p>Loading QR...</p>`;
+  res.send(html.replace('{{STATUS}}', status));
+});
+
 server.listen(PORT, () => {
-  console.log(`🌐 Server live at http://localhost:${PORT}`);
+  console.log(`[SERVER] Running on http://localhost:${PORT}`);
 });
