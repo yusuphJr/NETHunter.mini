@@ -1,53 +1,71 @@
-<!-- public/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Nethunter Mini QR</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Anonymous WhatsApp Linker</title>
   <style>
-    body {
-      font-family: monospace;
-      background-color: #000;
-      color: #00ff00;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
-    }
-    h1 {
-      margin-bottom: 10px;
-    }
-    #status {
-      margin-bottom: 20px;
-    }
-    img {
-      max-width: 300px;
-      border: 2px solid #0f0;
-      border-radius: 8px;
-    }
+    body { background: #0e0e0e; color: #fff; font-family: sans-serif; text-align: center; margin-top: 50px; }
+    button, input { padding: 10px; font-size: 16px; margin: 10px; }
+    #qr img { width: 300px; height: auto; border: 2px solid #0f0; }
+    #status { margin-top: 15px; color: #0f0; }
   </style>
 </head>
 <body>
-  <h1>Nethunter Mini</h1>
-  <div id="status">📡 Waiting for QR...</div>
-  <div id="qr"></div>
+  <h1>🕵️ Anonymous WhatsApp Linker</h1>
+  <p>Select your linking method:</p>
 
-  <script src="/socket.io/socket.io.js"></script>
+  <button onclick="showQR()">Link with QR Code</button>
+  <button onclick="showPhoneInput()">Link with Phone Number</button>
+
+  <div id="qr" style="display:none;"></div>
+  <div id="phoneForm" style="display:none;">
+    <input id="phoneInput" placeholder="Enter phone number..." />
+    <button onclick="linkPhone()">Link</button>
+  </div>
+
+  <p id="status"></p>
+
   <script>
-    const socket = io();
+    function showQR() {
+      document.getElementById('qr').style.display = 'block';
+      document.getElementById('phoneForm').style.display = 'none';
+      document.getElementById('status').innerText = 'Loading QR...';
 
-    socket.on('qr', qrData => {
-      document.getElementById('status').textContent = '📷 Scan this QR in WhatsApp';
-      document.getElementById('qr').innerHTML = `<img src="${qrData}" alt="QR Code">`;
-    });
+      fetch('/qr').then(res => res.json()).then(data => {
+        if (data.qr) {
+          document.getElementById('qr').innerHTML = `<img src="${data.qr}" alt="QR Code">`;
+          document.getElementById('status').innerText = 'Scan this code with your WhatsApp.';
+        } else {
+          document.getElementById('status').innerText = 'QR not available.';
+        }
+      }).catch(err => {
+        document.getElementById('status').innerText = 'Error fetching QR.';
+      });
+    }
 
-    socket.on('ready', message => {
-      document.getElementById('status').textContent = message;
-      document.getElementById('qr').innerHTML = '';
-    });
+    function showPhoneInput() {
+      document.getElementById('qr').style.display = 'none';
+      document.getElementById('phoneForm').style.display = 'block';
+      document.getElementById('status').innerText = '';
+    }
+
+    function linkPhone() {
+      const phone = document.getElementById('phoneInput').value;
+      if (!phone) {
+        document.getElementById('status').innerText = 'Please enter a phone number.';
+        return;
+      }
+
+      fetch('/link-phone', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      }).then(res => res.json()).then(data => {
+        document.getElementById('status').innerText = data.message;
+      }).catch(() => {
+        document.getElementById('status').innerText = 'Failed to link phone.';
+      });
+    }
   </script>
 </body>
 </html>
