@@ -1,56 +1,53 @@
-import express from 'express';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
 import pkg from 'whatsapp-web.js';
-const { Client, LocalAuth } = pkg;
-import qrcode from 'qrcode';
+const { Client, LocalAuth, MessageMedia } = pkg;
+import qrcode from 'qrcode-terminal';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const app = express();
-const port = process.env.PORT || 3000;
+const allowedUsers = ['255745830630', '255765457691']; // replace with your number & Mansour's (no "+")
 
 const client = new Client({
-  authStrategy: new LocalAuth(),
-  puppeteer: { headless: true }
+    authStrategy: new LocalAuth({
+        dataPath: './sessions'
+    }),
+    puppeteer: {
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+    }
 });
 
-app.use(express.static(join(__dirname, 'public')));
-app.use(express.json());
-
-let qrCodeData = '';
-
-client.on('qr', async (qr) => {
-  qrCodeData = await qrcode.toDataURL(qr);
-  console.log('[ QR RECEIVED ]');
-});
-
-client.on('ready', () => {
-  console.log('[ BOT IS READY ✅ ]');
+client.on('qr', (qr) => {
+    console.log('[!] Scan this QR code with your emulator WhatsApp:');
+    qrcode.generate(qr, { small: true });
 });
 
 client.on('authenticated', () => {
-  console.log('[ AUTHENTICATED 🔐 ]');
+    console.log('[✓] Authenticated successfully');
+});
+
+client.on('auth_failure', msg => {
+    console.error('[X] AUTHENTICATION FAILURE:', msg);
+});
+
+client.on('ready', async () => {
+    console.log('[✓] Bot is ready!');
+
+    // Send DM to allowed users
+    for (const number of allowedUsers) {
+        const chatId = `${number}@c.us`;
+        await client.sendMessage(chatId, '*[Anonymous Bot]*\n\n⚠️ You are now connected to the .NETFramework system. Please use responsibly.\nMisuse may lead to disconnection.');
+    }
+});
+
+client.on('message', async msg => {
+    const senderId = msg.from.split('@')[0];
+
+    if (!allowedUsers.includes(senderId)) {
+        await msg.reply("You are not available in .NETFramework, cannot process command.");
+        return;
+    }
+
+    // Process allowed user commands here
+    if (msg.body.toLowerCase() === 'menu') {
+        msg.reply('*Anonymous Bot Menu*\n1. Type `gpt <your question>` to ask AI\n2. Type `say <text>` for voice\n3. More features coming soon...');
+    }
 });
 
 client.initialize();
-
-app.get('/qr', (req, res) => {
-  if (qrCodeData) {
-    res.json({ qr: qrCodeData });
-  } else {
-    res.status(503).json({ message: 'QR code not available yet' });
-  }
-});
-
-app.post('/link-phone', (req, res) => {
-  const { phone } = req.body;
-  console.log(`[ MOCK PHONE LOGIN ] Requested phone link for: ${phone}`);
-  // Simulation: return success message
-  res.json({ success: true, message: `Link code for ${phone} sent! (mocked)` });
-});
-
-app.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
